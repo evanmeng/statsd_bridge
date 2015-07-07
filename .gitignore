@@ -1,0 +1,6 @@
+*.iml
+.idea/
+.build/
+dependencies-stamp
+statsd_bridge
+statsd_bridge-*.tar.gz
