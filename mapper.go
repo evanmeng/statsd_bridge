@@ -21,6 +21,7 @@ import (
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/log"
 )
 
 var (
@@ -94,9 +95,6 @@ func (m *metricMapper) initFromString(fileContents string) error {
 				return fmt.Errorf("Line %d: expected label mapping line, got: %s", i, line)
 			}
 			label, value := matches[1], matches[2]
-			if label == "name" && !metricNameRE.MatchString(value) {
-				return fmt.Errorf("Line %d: metric name '%s' doesn't match regex '%s'", i, value, metricNameRE)
-			}
 			currentMapping.labels[label] = value
 		default:
 			panic("illegal state")
@@ -133,7 +131,11 @@ func (m *metricMapper) getMapping(statsdMetric string) (labels prometheus.Labels
 		labels := prometheus.Labels{}
 		for label, valueExpr := range mapping.labels {
 			value := mapping.regex.ExpandString([]byte{}, valueExpr, statsdMetric, matches)
-			labels[label] = string(value)
+			valueStr := string(value)
+			labels[label] = valueStr
+			if label == "name" && !metricNameRE.MatchString(valueStr) {
+				log.Warnf("Metric name '%s' doesn't match regex '%s', will be escaped", valueStr, metricNameRE)
+			}
 		}
 		return labels, true
 	}
